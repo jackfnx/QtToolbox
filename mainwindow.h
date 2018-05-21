@@ -27,15 +27,18 @@ public:
     ~MainWindow();
 
 private slots:
-    void on_leCloud_textChanged(const QString &arg1);
+    void on_leCloud_textChanged(const QString &);
 
-    void on_leLocal_textChanged(const QString &arg1);
+    void on_leLocal_textChanged(const QString &);
 
     void on_btPull_clicked();
 
     void on_btPush_clicked();
 
 private:
+    void refresh_cloud();
+    void refresh_local();
+
     Ui::MainWindow *ui;
     QList<SAVE_ITEM> listLocal;
     QList<SAVE_ITEM> listCloud;

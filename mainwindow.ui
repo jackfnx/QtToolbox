@@ -14,7 +14,7 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>10</x>
@@ -35,7 +35,7 @@
        <property name="title">
         <string>Game Folder</string>
        </property>
-       <widget class="QWidget" name="">
+       <widget class="QWidget" name="layoutWidget">
         <property name="geometry">
          <rect>
           <x>10</x>
@@ -94,7 +94,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>=&gt;</string>
+          <string>&lt;=</string>
          </property>
         </widget>
        </item>
@@ -107,7 +107,7 @@
           </sizepolicy>
          </property>
          <property name="text">
-          <string>&lt;=</string>
+          <string>=&gt;</string>
          </property>
         </widget>
        </item>
@@ -124,7 +124,7 @@
        <property name="title">
         <string>Dropbox</string>
        </property>
-       <widget class="QWidget" name="">
+       <widget class="QWidget" name="layoutWidget">
         <property name="geometry">
          <rect>
           <x>10</x>

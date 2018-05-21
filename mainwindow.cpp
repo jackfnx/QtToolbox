@@ -32,7 +32,7 @@ QList<SAVE_ITEM> loadLocalFolder(QString path)
 
         list << item;
 
-        qDebug() << item.fileName;
+//        qDebug() << item.fileName;
     }
     return list;
 }
@@ -47,12 +47,13 @@ QList<SAVE_ITEM> loadCloudFolder(QString path)
             continue;
 
         SAVE_ITEM item;
-        item.fileName = f.absoluteFilePath();
         item.baseName = f.fileName();
+        item.fileName.sprintf("%s/%s", f.absoluteFilePath().toLatin1().data(), f.fileName().toLatin1().data());
         item.no = f.fileName();
 
         QString metaPath;
-        metaPath.sprintf("%s/meta.json", item.fileName.toLatin1().data());
+        metaPath.sprintf("%s/meta.json", f.absoluteFilePath().toLatin1().data());
+        qDebug() << metaPath;
 
         QFile metaIn(metaPath);
         if (metaIn.exists() && metaIn.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -102,9 +103,9 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::on_leCloud_textChanged(const QString &arg1)
+void MainWindow::refresh_cloud()
 {
-    listCloud = loadCloudFolder(arg1);
+    listCloud = loadCloudFolder(ui->leCloud->text());
 
     ui->twCloud->setRowCount(listCloud.size());
     for (int i = 0; i < listCloud.size(); i++)
@@ -116,9 +117,9 @@ void MainWindow::on_leCloud_textChanged(const QString &arg1)
     }
 }
 
-void MainWindow::on_leLocal_textChanged(const QString &arg1)
+void MainWindow::refresh_local()
 {
-    listLocal = loadLocalFolder(arg1);
+    listLocal = loadLocalFolder(ui->leLocal->text());
 
     ui->twLocal->setRowCount(listLocal.size());
     for (int i = 0; i < listLocal.size(); i++)
@@ -130,8 +131,19 @@ void MainWindow::on_leLocal_textChanged(const QString &arg1)
     }
 }
 
-void MainWindow::on_btPull_clicked()
+void MainWindow::on_leCloud_textChanged(const QString &)
 {
+    refresh_cloud();
+}
+
+void MainWindow::on_leLocal_textChanged(const QString &)
+{
+    refresh_local();
+}
+
+void MainWindow::on_btPush_clicked()
+{
+    qDebug() << "pull_clicked";
     if (ui->twLocal->selectedItems().empty())
     {
         return;
@@ -147,6 +159,7 @@ void MainWindow::on_btPull_clicked()
     imageFilePath.sprintf("%s/%s/%s", pathCloud.toLatin1().data(), item.baseName.toLatin1().data(), item.baseName.toLatin1().data());
     QString metaPath;
     metaPath.sprintf("%s/%s/meta.json", pathCloud.toLatin1().data(), item.baseName.toLatin1().data());
+    qDebug() << metaPath;
 
     QDir imageDir(imageDirPath);
     if (!imageDir.exists())
@@ -187,10 +200,13 @@ void MainWindow::on_btPull_clicked()
     }
 
     QFile::copy(item.fileName, imageFilePath);
+
+    refresh_cloud();
 }
 
-void MainWindow::on_btPush_clicked()
+void MainWindow::on_btPull_clicked()
 {
+    qDebug() << "push_clicked";
     if (ui->twCloud->selectedItems().empty())
     {
         return;
@@ -199,4 +215,11 @@ void MainWindow::on_btPush_clicked()
     auto sel = ui->twCloud->selectedItems().at(0);
     SAVE_ITEM item = listCloud.at(sel->row());
 
+    QString pathLocal = ui->leLocal->text();
+    QString localFilePath;
+    localFilePath.sprintf("%s/%s", pathLocal.toLatin1().data(), item.baseName.toLatin1().data());
+
+    QFile::copy(item.fileName, localFilePath);
+
+    refresh_local();
 }
