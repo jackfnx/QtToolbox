@@ -31,8 +31,6 @@ QList<SAVE_ITEM> loadLocalFolder(QString path)
         item.time = f.lastModified();
 
         list << item;
-
-//        qDebug() << item.fileName;
     }
     return list;
 }
@@ -53,7 +51,6 @@ QList<SAVE_ITEM> loadCloudFolder(QString path)
 
         QString metaPath;
         metaPath.sprintf("%s/meta.json", f.absoluteFilePath().toLatin1().data());
-        qDebug() << metaPath;
 
         QFile metaIn(metaPath);
         if (metaIn.exists() && metaIn.open(QIODevice::ReadOnly | QIODevice::Text))
@@ -62,7 +59,6 @@ QList<SAVE_ITEM> loadCloudFolder(QString path)
             QString json = in.readAll();
             metaIn.close();
 
-            qDebug() << json;
             QJsonDocument jsonIn = QJsonDocument::fromJson(json.toUtf8());
             item.time = QDateTime::fromTime_t(jsonIn.object().value("timestamp").toInt());
             item.comment = jsonIn.object().value("comment").toString();
@@ -73,8 +69,6 @@ QList<SAVE_ITEM> loadCloudFolder(QString path)
         }
 
         list << item;
-
-        qDebug() << item.fileName;
     }
     return list;
 }
@@ -143,7 +137,7 @@ void MainWindow::on_leLocal_textChanged(const QString &)
 
 void MainWindow::on_btPush_clicked()
 {
-    qDebug() << "pull_clicked";
+    qDebug() << "push_clicked";
     if (ui->twLocal->selectedItems().empty())
     {
         return;
@@ -159,7 +153,6 @@ void MainWindow::on_btPush_clicked()
     imageFilePath.sprintf("%s/%s/%s", pathCloud.toLatin1().data(), item.baseName.toLatin1().data(), item.baseName.toLatin1().data());
     QString metaPath;
     metaPath.sprintf("%s/%s/meta.json", pathCloud.toLatin1().data(), item.baseName.toLatin1().data());
-    qDebug() << metaPath;
 
     QDir imageDir(imageDirPath);
     if (!imageDir.exists())
@@ -181,7 +174,6 @@ void MainWindow::on_btPush_clicked()
         }
         metaIn.close();
         QJsonDocument jsonIn = QJsonDocument::fromJson(json.toUtf8());
-        timestamp = jsonIn.object().value("timestamp").toInt();
         comment = jsonIn.object().value("comment").toString();
     }
 
@@ -199,6 +191,10 @@ void MainWindow::on_btPush_clicked()
         metaOut.close();
     }
 
+    if (QFile::exists(imageFilePath))
+    {
+        QFile::remove(imageFilePath);
+    }
     QFile::copy(item.fileName, imageFilePath);
 
     refresh_cloud();
@@ -206,7 +202,7 @@ void MainWindow::on_btPush_clicked()
 
 void MainWindow::on_btPull_clicked()
 {
-    qDebug() << "push_clicked";
+    qDebug() << "pull_clicked";
     if (ui->twCloud->selectedItems().empty())
     {
         return;
@@ -219,6 +215,10 @@ void MainWindow::on_btPull_clicked()
     QString localFilePath;
     localFilePath.sprintf("%s/%s", pathLocal.toLatin1().data(), item.baseName.toLatin1().data());
 
+    if (QFile::exists(localFilePath))
+    {
+        QFile::remove(localFilePath);
+    }
     QFile::copy(item.fileName, localFilePath);
 
     refresh_local();
