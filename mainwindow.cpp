@@ -6,12 +6,14 @@
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonValue>
+#include <QStandardPaths>
+#include <QSettings>
 #include <QDebug>
 
 QList<SAVE_ITEM> loadLocalFolder(QString path)
 {
     QList<SAVE_ITEM> list;
-    QDir dir(path);
+    QDir dir(path + "/Save");
     foreach (QFileInfo f, dir.entryInfoList())
     {
         if (f.fileName() == "." || f.fileName() == "..")
@@ -38,7 +40,7 @@ QList<SAVE_ITEM> loadLocalFolder(QString path)
 QList<SAVE_ITEM> loadCloudFolder(QString path)
 {
     QList<SAVE_ITEM> list;
-    QDir dir(path);
+    QDir dir(path + "/GameSave/Sango7");
     foreach (QFileInfo f, dir.entryInfoList())
     {
         if (f.fileName() == "." || f.fileName() == "..")
@@ -47,7 +49,14 @@ QList<SAVE_ITEM> loadCloudFolder(QString path)
         SAVE_ITEM item;
         item.baseName = f.fileName();
         item.fileName.sprintf("%s/%s", f.absoluteFilePath().toLatin1().data(), f.fileName().toLatin1().data());
-        item.no = f.fileName();
+
+        int hyphen = item.fileName.lastIndexOf("-");
+        int dot = item.fileName.lastIndexOf(".");
+        if (f.suffix() != "sav" || hyphen < 0)
+        {
+            continue;
+        }
+        item.no = item.fileName.mid(hyphen + 1, dot - hyphen - 1);
 
         QString metaPath;
         metaPath.sprintf("%s/meta.json", f.absoluteFilePath().toLatin1().data());
@@ -79,17 +88,28 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    connect(&systray, SIGNAL(activated(QSystemTrayIcon::ActivationReason)), this, SLOT(onSystemTrayIconClicked(QSystemTrayIcon::ActivationReason)));
+
     ui->twLocal->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->twLocal->setSelectionMode(QAbstractItemView::SingleSelection);
 
     ui->twCloud->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->twCloud->setSelectionMode(QAbstractItemView::SingleSelection);
 
-    QString pathLocal("E:/lzf/Sango7/Save");
+    QString configFolderPath = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
+    QString configFilePath = configFolderPath + "/toolbox.ini";
+    QSettings settings(configFilePath, QSettings::IniFormat);
+
+    QString pathLocal(settings.value("local", "E:/lzf/Sango7").toString());
     ui->leLocal->setText(pathLocal);
 
-    QString pathCloud("C:/Users/hpjing/Dropbox/GameSave/Sango7");
+    QString pathCloud(settings.value("cloud", "C:/Users/hpjing/Dropbox").toString());
     ui->leCloud->setText(pathCloud);
+
+    systray.setToolTip("sixue的工具箱");
+    systray.setIcon(QIcon(":/png/toolbox.png"));
+
+    systray.show();
 }
 
 MainWindow::~MainWindow()
@@ -106,8 +126,8 @@ void MainWindow::refresh_cloud()
     {
         auto item = listCloud[i];
         ui->twCloud->setItem(i, 0, new QTableWidgetItem(item.no));
-        ui->twCloud->setItem(i, 1, new QTableWidgetItem(item.time.toString("yyyy-MM-dd HH:mm:ss")));
-        ui->twCloud->setItem(i, 2, new QTableWidgetItem(item.comment));
+        ui->twCloud->setItem(i, 1, new QTableWidgetItem(item.baseName));
+        ui->twCloud->setItem(i, 2, new QTableWidgetItem(item.time.toString("yyyy-MM-dd HH:mm:ss")));
     }
 }
 
@@ -127,17 +147,26 @@ void MainWindow::refresh_local()
 
 void MainWindow::on_leCloud_textChanged(const QString &)
 {
+    QString configFolderPath = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
+    QString configFilePath = configFolderPath + "/toolbox.ini";
+    QSettings settings(configFilePath, QSettings::IniFormat);
+    settings.setValue("cloud", ui->leCloud->text());
+    settings.sync();
     refresh_cloud();
 }
 
 void MainWindow::on_leLocal_textChanged(const QString &)
 {
+    QString configFolderPath = QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
+    QString configFilePath = configFolderPath + "/toolbox.ini";
+    QSettings settings(configFilePath, QSettings::IniFormat);
+    settings.setValue("local", ui->leLocal->text());
+    settings.sync();
     refresh_local();
 }
 
 void MainWindow::on_btPush_clicked()
 {
-    qDebug() << "push_clicked";
     if (ui->twLocal->selectedItems().empty())
     {
         return;
@@ -202,7 +231,6 @@ void MainWindow::on_btPush_clicked()
 
 void MainWindow::on_btPull_clicked()
 {
-    qDebug() << "pull_clicked";
     if (ui->twCloud->selectedItems().empty())
     {
         return;
@@ -222,4 +250,76 @@ void MainWindow::on_btPull_clicked()
     QFile::copy(item.fileName, localFilePath);
 
     refresh_local();
+}
+
+void MainWindow::on_twLocal_itemSelectionChanged()
+{
+    if (ui->twLocal->selectedItems().empty())
+    {
+        return;
+    }
+
+    auto selLocal0 = ui->twLocal->selectedItems().at(0);
+    SAVE_ITEM item = listLocal.at(selLocal0->row());
+    auto selClouds = ui->twCloud->selectedItems();
+    for (int i = 0; i < selClouds.size(); i++)
+    {
+        if (listCloud.at(selClouds.at(i)->row()).no == item.no)
+        {
+            return;
+        }
+    }
+    ui->twCloud->clearSelection();
+    for (int i = 0; i < listCloud.size(); i++)
+    {
+        if (listCloud.at(i).no == item.no)
+        {
+            ui->twCloud->selectRow(i);
+            return;
+        }
+    }
+}
+
+void MainWindow::on_twCloud_itemSelectionChanged()
+{
+    if (ui->twCloud->selectedItems().empty())
+    {
+        return;
+    }
+
+    auto selCloud0 = ui->twCloud->selectedItems().at(0);
+    SAVE_ITEM item = listCloud.at(selCloud0->row());
+    auto selLocals = ui->twLocal->selectedItems();
+    for (int i = 0; i < selLocals.size(); i++)\
+    {
+        if (listLocal.at(selLocals.at(i)->row()).no == item.no)
+        {
+            return;
+        }
+    }
+    ui->twCloud->clearSelection();
+    for (int i = 0; i < listLocal.size(); i++)
+    {
+        if (listLocal.at(i).no == item.no)
+        {
+            ui->twLocal->selectRow(i);
+            return;
+        }
+    }
+}
+
+void MainWindow::onSystemTrayIconClicked(QSystemTrayIcon::ActivationReason reason)
+{
+    if (reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::DoubleClick)
+    {
+        //判断点击或双击时，恢复显示主窗口
+        this->showNormal();
+    }
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    //重写closeEvent虚函数，实现关闭主窗口时退到托盘最小化
+    this->hide();
+    event->ignore();
 }

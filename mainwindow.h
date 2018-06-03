@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QList>
 #include <QDateTime>
+#include <QSystemTrayIcon>
+#include <QCloseEvent>
 
 namespace Ui {
 class MainWindow;
@@ -35,11 +37,19 @@ private slots:
 
     void on_btPush_clicked();
 
+    void on_twLocal_itemSelectionChanged();
+
+    void on_twCloud_itemSelectionChanged();
+
+    void onSystemTrayIconClicked(QSystemTrayIcon::ActivationReason);
+    void closeEvent(QCloseEvent *event);
+
 private:
     void refresh_cloud();
     void refresh_local();
 
     Ui::MainWindow *ui;
+    QSystemTrayIcon systray;
     QList<SAVE_ITEM> listLocal;
     QList<SAVE_ITEM> listCloud;
 };
