@@ -13,7 +13,7 @@
 QList<SAVE_ITEM> loadLocalFolder(QString path)
 {
     QList<SAVE_ITEM> list;
-    QDir dir(path + "/Save");
+    QDir dir(path);
     foreach (QFileInfo f, dir.entryInfoList())
     {
         if (f.fileName() == "." || f.fileName() == "..")
@@ -40,7 +40,7 @@ QList<SAVE_ITEM> loadLocalFolder(QString path)
 QList<SAVE_ITEM> loadCloudFolder(QString path)
 {
     QList<SAVE_ITEM> list;
-    QDir dir(path + "/GameSave/Sango7");
+    QDir dir(path);
     foreach (QFileInfo f, dir.entryInfoList())
     {
         if (f.fileName() == "." || f.fileName() == "..")
@@ -109,7 +109,13 @@ MainWindow::MainWindow(QWidget *parent) :
     systray.setToolTip("sixue的工具箱");
     systray.setIcon(QIcon(":/png/toolbox.png"));
 
+    QMenu *menu = new QMenu;
+    QAction *quitAction = new QAction("quit", this);
+    menu->addAction(quitAction);
+    systray.setContextMenu(menu);
     systray.show();
+
+    connect(quitAction, SIGNAL(triggered()), this, SLOT(quitActionSlot()));
 }
 
 MainWindow::~MainWindow()
@@ -117,9 +123,17 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+QString MainWindow::cloud_path() {
+    return ui->leCloud->text() + "/GameSave/Sango7";
+}
+
+QString MainWindow::local_path() {
+    return ui->leLocal->text() + "/Save";
+}
+
 void MainWindow::refresh_cloud()
 {
-    listCloud = loadCloudFolder(ui->leCloud->text());
+    listCloud = loadCloudFolder(cloud_path());
 
     ui->twCloud->setRowCount(listCloud.size());
     for (int i = 0; i < listCloud.size(); i++)
@@ -133,7 +147,7 @@ void MainWindow::refresh_cloud()
 
 void MainWindow::refresh_local()
 {
-    listLocal = loadLocalFolder(ui->leLocal->text());
+    listLocal = loadLocalFolder(local_path());
 
     ui->twLocal->setRowCount(listLocal.size());
     for (int i = 0; i < listLocal.size(); i++)
@@ -175,7 +189,7 @@ void MainWindow::on_btPush_clicked()
     auto sel = ui->twLocal->selectedItems().at(0);
     SAVE_ITEM item = listLocal.at(sel->row());
 
-    QString pathCloud = ui->leCloud->text();
+    QString pathCloud = cloud_path();
     QString imageDirPath;
     imageDirPath.sprintf("%s/%s", pathCloud.toLatin1().data(), item.baseName.toLatin1().data());
     QString imageFilePath;
@@ -239,7 +253,7 @@ void MainWindow::on_btPull_clicked()
     auto sel = ui->twCloud->selectedItems().at(0);
     SAVE_ITEM item = listCloud.at(sel->row());
 
-    QString pathLocal = ui->leLocal->text();
+    QString pathLocal = local_path();
     QString localFilePath;
     localFilePath.sprintf("%s/%s", pathLocal.toLatin1().data(), item.baseName.toLatin1().data());
 
@@ -322,4 +336,9 @@ void MainWindow::closeEvent(QCloseEvent *event)
     //重写closeEvent虚函数，实现关闭主窗口时退到托盘最小化
     this->hide();
     event->ignore();
+}
+
+void MainWindow::quitActionSlot()
+{
+    QApplication::exit(0);
 }

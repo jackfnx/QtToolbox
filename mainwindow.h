@@ -42,9 +42,14 @@ private slots:
     void on_twCloud_itemSelectionChanged();
 
     void onSystemTrayIconClicked(QSystemTrayIcon::ActivationReason);
+
     void closeEvent(QCloseEvent *event);
 
+    void quitActionSlot();
+
 private:
+    QString cloud_path();
+    QString local_path();
     void refresh_cloud();
     void refresh_local();
 
